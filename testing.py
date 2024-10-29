@@ -21,8 +21,6 @@ month_dict = {
     12: "december"
 }
 
-print(f"The current month is: {month_dict[month]}\n")
-
 url = f"https://canadianauthors.org/national/links/awards-competitions/awards-competitions-{month_dict[month]}-deadlines/"
 
 response = requests.get(url)
@@ -30,16 +28,17 @@ response = requests.get(url)
 if response.status_code == 200:
     soup = BeautifulSoup(response.content, 'html.parser')
     s = soup.find('div', class_='wf-container-main')
-    headings = s.find_all(['h3', 'p'])  # Capture both <h3> and <p> elements
+    headings = s.find_all(['h3', 'p'])  
+
+    awards_data = [] 
 
     for item in headings:
         if item.name == 'h3':
-            # Print the heading
-            print(f"Title: {item.get_text(strip=True)}\n")
+            title = item.get_text(strip=True)
 
         elif item.name == 'p':
-            if item.find('strong'):  # Check if there's a strong tag
-                # Function to safely get text from next sibling
+            if item.find('strong'): 
+
                 def get_sibling_text(sibling):
                     if sibling:
                         if isinstance(sibling, str):
@@ -48,43 +47,54 @@ if response.status_code == 200:
                             return sibling.get_text(strip=True)
                     return ''
 
-                # Print the genre
-                genre = item.find('strong', string='Genre:')
+
+                award_entry = {
+                    'title': title,
+                    'genre': None,
+                    'entry_fee': None,
+                    'deadline': None,
+                    'prize': None,
+                    'description': None,
+                    'details_link': None
+                }
+
+
+                genre = item.find(lambda tag: tag.name == 'strong' and 'Genre:' in tag.get_text(strip=True))
                 if genre:
-                    genre_text = get_sibling_text(genre.next_sibling)
-                    print(f"Genre:       {genre_text}")
+                    award_entry['genre'] = get_sibling_text(genre.next_sibling)
 
-                # Print the entry fee
-                entry_fee = item.find('strong', string='Entry Fee:')
+
+                entry_fee = item.find(lambda tag: tag.name == 'strong' and 'Entry Fee:' in tag.get_text(strip=True))
                 if entry_fee:
-                    entry_fee_text = get_sibling_text(entry_fee.next_sibling)
-                    print(f"Entry Fee:       {entry_fee_text}")
+                    award_entry['entry_fee'] = get_sibling_text(entry_fee.next_sibling)
 
-                # Print the deadline
-                deadline = item.find('strong', string='Deadline:')
+
+                deadline = item.find(lambda tag: tag.name == 'strong' and 'Deadline:' in tag.get_text(strip=True))
                 if deadline:
-                    deadline_text = get_sibling_text(deadline.next_sibling)
-                    print(f"Deadline:       {deadline_text}")
+                    award_entry['deadline'] = get_sibling_text(deadline.next_sibling)
 
-                # Print the prize
-                prize = item.find('strong', string='Prize:')
+
+                prize = item.find(lambda tag: tag.name == 'strong' and 'Prize:' in tag.get_text(strip=True))
                 if prize:
-                    prize_text = get_sibling_text(prize.next_sibling)
-                    print(f"Prize:       {prize_text}")
+                    award_entry['prize'] = get_sibling_text(prize.next_sibling)
 
-                # Print the description
+
                 description = item.find(lambda tag: tag.name == 'strong' and 'Description:' in tag.get_text(strip=True))
                 if description:
-                    desc_text = get_sibling_text(description.next_sibling)
-                    if desc_text in ['&nbsp;', '']:
-                        desc_text = 'No description available.'  # Fallback message
-                    print(f"Description:       {desc_text}")
+                    award_entry['description'] = get_sibling_text(description.next_sibling)
 
-                # Print details link
-                details = item.find('strong', string='Details:')
+
+                details = item.find(lambda tag: tag.name == 'strong' and 'Details:' in tag.get_text(strip=True))
                 if details:
                     details_link = details.find_next('a')
                     if details_link:
-                        print(f"Details:       {details_link['href']}")
+                        award_entry['details_link'] = details_link['href']
 
-                print("\n" + "="*40 + "\n")  # Separator between entries
+
+                awards_data.append(award_entry)
+
+    with open('awards_data.json', 'w') as json_file:
+        json.dump(awards_data, json_file, indent=4)
+
+else:
+    print(f"Failed to retrieve data: {response.status_code}")
