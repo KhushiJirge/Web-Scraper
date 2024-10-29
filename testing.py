@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import datetime
+import json
 
 date = datetime.datetime.now()
 month = date.month
@@ -38,36 +39,52 @@ if response.status_code == 200:
 
         elif item.name == 'p':
             if item.find('strong'):  # Check if there's a strong tag
+                # Function to safely get text from next sibling
+                def get_sibling_text(sibling):
+                    if sibling:
+                        if isinstance(sibling, str):
+                            return sibling.strip()
+                        else:
+                            return sibling.get_text(strip=True)
+                    return ''
+
                 # Print the genre
                 genre = item.find('strong', string='Genre:')
                 if genre:
-                    print(f"Genre: {genre.next_sibling.strip()}")
-                
+                    genre_text = get_sibling_text(genre.next_sibling)
+                    print(f"Genre:       {genre_text}")
+
                 # Print the entry fee
                 entry_fee = item.find('strong', string='Entry Fee:')
                 if entry_fee:
-                    print(f"Entry Fee: {entry_fee.next_sibling.strip()}")
+                    entry_fee_text = get_sibling_text(entry_fee.next_sibling)
+                    print(f"Entry Fee:       {entry_fee_text}")
 
                 # Print the deadline
                 deadline = item.find('strong', string='Deadline:')
                 if deadline:
-                    print(f"Deadline: {deadline.next_sibling.strip()}")
+                    deadline_text = get_sibling_text(deadline.next_sibling)
+                    print(f"Deadline:       {deadline_text}")
 
                 # Print the prize
                 prize = item.find('strong', string='Prize:')
                 if prize:
-                    print(f"Prize: {prize.next_sibling.strip()}")
+                    prize_text = get_sibling_text(prize.next_sibling)
+                    print(f"Prize:       {prize_text}")
 
                 # Print the description
-                description = item.find('strong', string='Description:')
+                description = item.find(lambda tag: tag.name == 'strong' and 'Description:' in tag.get_text(strip=True))
                 if description:
-                    print(f"Description: {description.next_sibling.strip()}")
+                    desc_text = get_sibling_text(description.next_sibling)
+                    if desc_text in ['&nbsp;', '']:
+                        desc_text = 'No description available.'  # Fallback message
+                    print(f"Description:       {desc_text}")
 
                 # Print details link
                 details = item.find('strong', string='Details:')
                 if details:
                     details_link = details.find_next('a')
                     if details_link:
-                        print(f"Details: {details_link['href']}")
+                        print(f"Details:       {details_link['href']}")
 
                 print("\n" + "="*40 + "\n")  # Separator between entries
